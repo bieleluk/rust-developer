@@ -27,10 +27,14 @@ fn main() {
 
 fn transform_string(line: &str, transformation: &str) -> Option<String> {
     match transformation {
+        // Compulsory transformations
         "lowercase" => Some(line.to_lowercase()),
         "uppercase" => Some(line.to_uppercase()),
         "no-spaces" => Some(line.replace(" ", "")),
         "slugify" => Some(slugify(&line)),
+        // Bonus transofrmations
+        "double" => Some(format!("{}{}", line, line)),
+        "reverse" => Some(line.chars().rev().collect()),
         _ => None, // Default case for any other value
     }
 }
@@ -69,6 +73,22 @@ mod tests {
         assert_eq!(
             transform_string("Hello, World!", "slugify"),
             Some("hello-world".to_string())
+        );
+    }
+
+    #[test]
+    fn test_double() {
+        assert_eq!(
+            transform_string("Hello, World!", "double"),
+            Some("Hello, World!Hello, World!".to_string())
+        );
+    }
+
+    #[test]
+    fn test_reverse() {
+        assert_eq!(
+            transform_string("Hello, World!", "reverse"),
+            Some("!dlroW ,olleH".to_string())
         );
     }
 

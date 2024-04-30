@@ -6,7 +6,7 @@
 - [x] Read a string from the standard input
 - [x] Parse CLI Arguments
 - [x] Transmute Text according to 4 given transformations
-- [ ] Bonus: makie two additional transformations
+- [x] Bonus: make two additional transformations
 - [x] Print Result
 
 ## Running the example
