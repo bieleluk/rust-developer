@@ -2,8 +2,8 @@
 
 ## Objective
 
-- [ ] Examine the first argument to identify the required operation, and execute its function
-- [ ] Display the operation's output or an error 
+- [x] Examine the first argument to identify the required operation, and execute its function
+- [x] Display the operation's output or an error 
 - [ ] Create a dedicated function for each operation which validates arguments, parses, and returns the output
 - [ ] Return `Result<String, Box<dyn Error>>`
 - [ ] Present the selected operation and any errors encountered
