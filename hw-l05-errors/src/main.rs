@@ -13,7 +13,7 @@ fn main() {
 
         match result {
             Ok(result) => println!("{result}"),
-            Err(e) => eprintln!("Error {e} occurred!"),
+            Err(e) => eprintln!("Error '{e}' occurred!"),
         }
     }
 }
