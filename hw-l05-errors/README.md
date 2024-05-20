@@ -7,10 +7,10 @@
 - [x] Create a dedicated function for each operation which validates arguments, parses, and returns the output
 - [x] Return `Result<String, Box<dyn Error>>`
 - [x] Present the selected operation and any errors encountered
-- [ ] Add additional operation labeled `csv`, that interprets the input string as CSV
-- [ ] Exhibit the parsed content in an orderly table layout
-- [ ] Bonus: Hhandle any length of values and headers
-- [ ] create a Csv struct and implement the Display trait
+- [x] Add additional operation labeled `csv`, that interprets the input string as CSV
+- [x] Exhibit the parsed content in an orderly table layout
+- [x] Bonus: Hhandle any length of values and headers
+- [x] create a Csv struct and implement the Display trait
 
 ## Running the example
 
