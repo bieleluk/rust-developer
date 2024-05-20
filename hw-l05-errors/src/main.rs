@@ -12,7 +12,7 @@ fn main() {
         let result = collect_and_transform(&args[1]);
 
         match result {
-            Ok(result) => println!("Transformed result: {}", result),
+            Ok(result) => println!("{result}"),
             Err(e) => eprintln!("Error {e} occurred!"),
         }
     }
