@@ -2,13 +2,24 @@ use slug::slugify;
 use std::error::Error;
 use std::io::stdin;
 
-pub fn collect_and_transform(transformation: &str) -> Result<String, Box<dyn Error>> {
+pub fn run(transformation: &str) -> Result<String, Box<dyn Error>> {
     // Read a string from stdin
+    let transformation = check_transformation(transformation)?;
     let mut line = String::new();
     println!("Insert one-line string and press the Enter");
     stdin().read_line(&mut line)?;
     let line = line.trim();
     transform(line, transformation)
+}
+
+pub fn check_transformation(transformation: &str) -> Result<&str, Box<dyn Error>> {
+    match transformation {
+        // Compulsory transformations
+        "lowercase" | "uppercase" | "no-spaces" | "slugify" | "double" | "reverse" => {
+            Ok(transformation)
+        }
+        _ => Err(From::from("Non-existing transformation")), // Default case for any other value
+    }
 }
 
 pub fn transform(line: &str, transformation: &str) -> Result<String, Box<dyn Error>> {
@@ -21,7 +32,7 @@ pub fn transform(line: &str, transformation: &str) -> Result<String, Box<dyn Err
         // Bonus transofrmations
         "double" => double_str(line),
         "reverse" => reverse(line),
-        _ => Err(From::from("Non-existing transformation")), // Default case for any other value
+        _ => unreachable!(),
     }
 }
 
@@ -72,7 +83,6 @@ fn reverse(line: &str) -> Result<String, Box<dyn Error>> {
         Ok(line.chars().rev().collect())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -144,5 +154,15 @@ mod tests {
     #[test]
     fn test_spaces_string() {
         assert!(transform("", "no-spaces").is_err());
+    }
+
+    #[test]
+    fn test_existing_transformation() {
+        assert_eq!(check_transformation("no-spaces").unwrap(), "no-spaces");
+    }
+
+    #[test]
+    fn test_non_existing_transformation() {
+        assert!(check_transformation("adhoc").is_err());
     }
 }
