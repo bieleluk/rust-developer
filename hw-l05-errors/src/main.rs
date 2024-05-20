@@ -1,7 +1,7 @@
 use std::env::args;
 
 mod str_utils;
-use str_utils::collect_and_transform;
+use str_utils::run;
 
 fn main() {
     // Parse cli arguments
@@ -9,7 +9,7 @@ fn main() {
     if args.len() != 2 {
         eprintln!("Wrong number of arguments!");
     } else {
-        let result = collect_and_transform(&args[1]);
+        let result = run(&args[1]);
 
         match result {
             Ok(result) => println!("{result}"),
