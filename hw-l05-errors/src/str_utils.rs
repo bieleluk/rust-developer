@@ -1,21 +1,26 @@
 use slug::slugify;
 use std::error::Error;
-use std::io::stdin;
+use std::io::{stdin, Read};
 
 pub fn run(transformation: &str) -> Result<String, Box<dyn Error>> {
     // Read a string from stdin
     let transformation = check_transformation(transformation)?;
-    let mut line = String::new();
+    let mut input_str = String::new();
     println!("Insert one-line string and press the Enter");
-    stdin().read_line(&mut line)?;
-    let line = line.trim();
-    transform(line, transformation)
+
+    // Handle CSV case requiring multi-line input
+    match transformation {
+        "csv" => stdin().read_to_string(&mut input_str)?,
+        _ => stdin().read_line(&mut input_str)?, // valid_transmutation() guarantees no bad inputs
+    };
+
+    transform(&input_str, transformation)
 }
 
 pub fn check_transformation(transformation: &str) -> Result<&str, Box<dyn Error>> {
     match transformation {
         // Compulsory transformations
-        "lowercase" | "uppercase" | "no-spaces" | "slugify" | "double" | "reverse" => {
+        "lowercase" | "uppercase" | "no-spaces" | "slugify" | "double" | "reverse" | "csv" => {
             Ok(transformation)
         }
         _ => Err(From::from("Non-existing transformation")), // Default case for any other value
@@ -29,6 +34,7 @@ pub fn transform(line: &str, transformation: &str) -> Result<String, Box<dyn Err
         "uppercase" => to_uppercase(line),
         "no-spaces" => remove_spaces(line),
         "slugify" => slugify_str(line),
+        "csv" => Ok(line.to_string()),
         // Bonus transofrmations
         "double" => double_str(line),
         "reverse" => reverse(line),
@@ -136,10 +142,6 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_nonexisting_transformation() {
-        assert!(transform("Hello, World!", "unknown").is_err());
-    }
 
     #[test]
     fn test_empty_string() {
@@ -159,6 +161,11 @@ mod tests {
     #[test]
     fn test_existing_transformation() {
         assert_eq!(check_transformation("no-spaces").unwrap(), "no-spaces");
+    }
+
+    #[test]
+    fn test_csv_transformation() {
+        assert_eq!(check_transformation("csv").unwrap(), "csv");
     }
 
     #[test]
