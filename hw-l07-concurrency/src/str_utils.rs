@@ -2,7 +2,6 @@ use csv::ReaderBuilder;
 use slug::slugify;
 use std::error::Error;
 use std::fmt;
-use std::io::{stdin, Read};
 
 #[derive(PartialEq, Debug)]
 pub struct Csv {
@@ -59,43 +58,7 @@ impl fmt::Display for Csv {
     }
 }
 
-pub fn check_transformation(transformation: &str) -> Result<&str, Box<dyn Error>> {
-    match transformation {
-        // Compulsory transformations
-        "lowercase" | "uppercase" | "no-spaces" | "slugify" | "double" | "reverse" | "csv" => {
-            Ok(transformation)
-        }
-        _ => Err(From::from("Non-existing transformation")), // Default case for any other value
-    }
-}
-
-pub fn get_data(transformation: &str) -> Result<String, Box<dyn Error>> {
-    let mut input_str = String::new();
-
-    // Handle CSV case requiring multi-line input
-    match transformation {
-        "csv" => stdin().read_to_string(&mut input_str)?,
-        _ => stdin().read_line(&mut input_str)?, // valid_transmutation() guarantees no bad inputs
-    };
-    Ok(input_str)
-}
-
-pub fn transform(input_str: &str, transformation: &str) -> Result<String, Box<dyn Error>> {
-    match transformation {
-        // Compulsory transformations
-        "lowercase" => to_lowercase(input_str),
-        "uppercase" => to_uppercase(input_str),
-        "no-spaces" => remove_spaces(input_str),
-        "slugify" => slugify_str(input_str),
-        "csv" => csv_formatted_str(csv_parse(input_str)?),
-        // Bonus transofrmations
-        "double" => double_str(input_str),
-        "reverse" => reverse(input_str),
-        _ => unreachable!(),
-    }
-}
-
-fn to_lowercase(line: &str) -> Result<String, Box<dyn Error>> {
+pub fn to_lowercase(line: &str) -> Result<String, Box<dyn Error>> {
     if line.trim().is_empty() {
         Err(From::from("Input is empty"))
     } else {
@@ -103,7 +66,7 @@ fn to_lowercase(line: &str) -> Result<String, Box<dyn Error>> {
     }
 }
 
-fn to_uppercase(line: &str) -> Result<String, Box<dyn Error>> {
+pub fn to_uppercase(line: &str) -> Result<String, Box<dyn Error>> {
     if line.trim().is_empty() {
         Err(From::from("Input is empty"))
     } else {
@@ -111,7 +74,7 @@ fn to_uppercase(line: &str) -> Result<String, Box<dyn Error>> {
     }
 }
 
-fn remove_spaces(line: &str) -> Result<String, Box<dyn Error>> {
+pub fn remove_spaces(line: &str) -> Result<String, Box<dyn Error>> {
     if line.trim().is_empty() {
         Err(From::from("Input is empty"))
     } else {
@@ -119,7 +82,7 @@ fn remove_spaces(line: &str) -> Result<String, Box<dyn Error>> {
     }
 }
 
-fn slugify_str(line: &str) -> Result<String, Box<dyn Error>> {
+pub fn slugify_str(line: &str) -> Result<String, Box<dyn Error>> {
     if line.trim().is_empty() {
         Err(From::from("Input is empty"))
     } else {
@@ -127,7 +90,7 @@ fn slugify_str(line: &str) -> Result<String, Box<dyn Error>> {
     }
 }
 
-fn double_str(line: &str) -> Result<String, Box<dyn Error>> {
+pub fn double_str(line: &str) -> Result<String, Box<dyn Error>> {
     if line.trim().is_empty() {
         Err(From::from("Input is empty"))
     } else {
@@ -135,7 +98,7 @@ fn double_str(line: &str) -> Result<String, Box<dyn Error>> {
     }
 }
 
-fn reverse(line: &str) -> Result<String, Box<dyn Error>> {
+pub fn reverse(line: &str) -> Result<String, Box<dyn Error>> {
     if line.trim().is_empty() {
         Err(From::from("Input is empty"))
     } else {
@@ -143,7 +106,7 @@ fn reverse(line: &str) -> Result<String, Box<dyn Error>> {
     }
 }
 
-fn csv_parse(input_str: &str) -> Result<Csv, Box<dyn Error>> {
+pub fn csv_parse(input_str: &str) -> Result<Csv, Box<dyn Error>> {
     let mut reader = ReaderBuilder::new().from_reader(input_str.as_bytes());
 
     // Read headers
@@ -160,91 +123,13 @@ fn csv_parse(input_str: &str) -> Result<Csv, Box<dyn Error>> {
     Ok(Csv::new(headers, rows))
 }
 
-fn csv_formatted_str(input_csv: Csv) -> Result<String, Box<dyn Error>> {
+pub fn csv_formatted_str(input_csv: Csv) -> Result<String, Box<dyn Error>> {
     Ok(format!("{input_csv}"))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_lowercase() {
-        assert_eq!(
-            transform("Hello, World!", "lowercase").unwrap(),
-            "hello, world!".to_string()
-        );
-    }
-
-    #[test]
-    fn test_uppercase() {
-        assert_eq!(
-            transform("Hello, World!", "uppercase").unwrap(),
-            "HELLO, WORLD!".to_string()
-        );
-    }
-
-    #[test]
-    fn test_no_spaces() {
-        assert_eq!(
-            transform("Hello, World!", "no-spaces").unwrap(),
-            "Hello,World!".to_string()
-        );
-    }
-
-    #[test]
-    fn test_slugify() {
-        assert_eq!(
-            transform("Hello, World!", "slugify").unwrap(),
-            "hello-world".to_string()
-        );
-    }
-
-    #[test]
-    fn test_double() {
-        assert_eq!(
-            transform("Hello, World!", "double").unwrap(),
-            "Hello, World!Hello, World!".to_string()
-        );
-    }
-
-    #[test]
-    fn test_reverse() {
-        assert_eq!(
-            transform("Hello, World!", "reverse").unwrap(),
-            "!dlroW ,olleH".to_string()
-        );
-    }
-
-    #[test]
-    fn test_empty_string() {
-        assert!(transform("", "reverse").is_err());
-    }
-
-    #[test]
-    fn test_newline_string() {
-        assert!(transform("\n", "no-spaces").is_err());
-    }
-
-    #[test]
-    fn test_spaces_string() {
-        assert!(transform("", "no-spaces").is_err());
-    }
-
-    #[test]
-    fn test_existing_transformation() {
-        assert_eq!(check_transformation("no-spaces").unwrap(), "no-spaces");
-    }
-
-    #[test]
-    fn test_csv_transformation() {
-        assert_eq!(check_transformation("csv").unwrap(), "csv");
-    }
-
-    #[test]
-    fn test_non_existing_transformation() {
-        assert!(check_transformation("adhoc").is_err());
-    }
 
     #[test]
     fn test_csv_display() {

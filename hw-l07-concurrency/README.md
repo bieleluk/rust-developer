@@ -29,7 +29,7 @@
 
 ## Running the tests
 
-* Project contains 14 unit and 2 integration tests to ensure the expected behaviour of each function as well as the entire flow
+* Project contains 11 unit and 2 integration tests to ensure the expected behaviour of each function as well as the entire flow
 * They could be executed as follows:
 
     ```sh
