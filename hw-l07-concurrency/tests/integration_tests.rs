@@ -4,6 +4,9 @@ use std::process::Command;
 fn test_wrong_number_of_arguments() {
     let output = Command::new("cargo")
         .arg("run")
+        .arg("--")
+        .arg("lorem")
+        .arg("ipsum")
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .output()
