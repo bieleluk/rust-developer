@@ -1,24 +1,15 @@
+use concurrency::data_processor;
+use concurrency::input_parser;
 use std::env::args;
 use std::process::exit;
-mod str_utils;
-use std::error::Error;
-use str_utils::run;
-
+use concurrency::run_complete;
 use std::thread;
-
-fn input_parser() -> Result<(), Box<dyn Error + Send + Sync>> {
-    Ok(())
-}
-
-fn data_processor() -> Result<(), Box<dyn Error + Send + Sync>> {
-    Ok(())
-}
 
 fn main() {
     // Parse cli arguments
     let args: Vec<String> = args().collect();
     if args.len() == 2 {
-        let result = run(&args[1]);
+        let result = run_complete(&args[1]);
 
         match result {
             Ok(result) => println!("{result}"),
@@ -28,9 +19,10 @@ fn main() {
             }
         }
     } else if args.len() == 1 {
+        // Spawn threads for input processing and for transofming the data
         let handle_input = thread::spawn(input_parser);
         let handle_data = thread::spawn(data_processor);
-
+        // Wait until thethreads finish execution
         let result_input = handle_input.join();
         let result_data = handle_data.join();
 

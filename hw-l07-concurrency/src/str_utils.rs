@@ -59,21 +59,6 @@ impl fmt::Display for Csv {
     }
 }
 
-pub fn run(transformation: &str) -> Result<String, Box<dyn Error>> {
-    // Read a string from stdin
-    let transformation = check_transformation(transformation)?;
-    let mut input_str = String::new();
-    println!("Insert string and press the Enter");
-
-    // Handle CSV case requiring multi-line input
-    match transformation {
-        "csv" => stdin().read_to_string(&mut input_str)?,
-        _ => stdin().read_line(&mut input_str)?, // valid_transmutation() guarantees no bad inputs
-    };
-
-    transform(&input_str, transformation)
-}
-
 pub fn check_transformation(transformation: &str) -> Result<&str, Box<dyn Error>> {
     match transformation {
         // Compulsory transformations
@@ -82,6 +67,17 @@ pub fn check_transformation(transformation: &str) -> Result<&str, Box<dyn Error>
         }
         _ => Err(From::from("Non-existing transformation")), // Default case for any other value
     }
+}
+
+pub fn get_data(transformation: &str) -> Result<String, Box<dyn Error>> {
+    let mut input_str = String::new();
+
+    // Handle CSV case requiring multi-line input
+    match transformation {
+        "csv" => stdin().read_to_string(&mut input_str)?,
+        _ => stdin().read_line(&mut input_str)?, // valid_transmutation() guarantees no bad inputs
+    };
+    Ok(input_str)
 }
 
 pub fn transform(input_str: &str, transformation: &str) -> Result<String, Box<dyn Error>> {
