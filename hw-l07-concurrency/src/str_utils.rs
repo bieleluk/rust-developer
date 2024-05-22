@@ -2,6 +2,9 @@ use csv::ReaderBuilder;
 use slug::slugify;
 use std::error::Error;
 use std::fmt;
+use std::fs::File;
+use std::io::Read;
+use std::path::Path;
 
 #[derive(PartialEq, Debug)]
 pub struct Csv {
@@ -106,6 +109,16 @@ pub fn reverse(line: &str) -> Result<String, Box<dyn Error>> {
     }
 }
 
+pub fn csv_open(path_str: &str) -> Result<String, Box<dyn Error>> {
+    let path = Path::new(path_str);
+    let mut fd = File::open(path)?;
+    // Grab the contents and store them as a String to be processed
+    let mut csv_str = String::new();
+    fd.read_to_string(&mut csv_str)?;
+
+    Ok(csv_str)
+}
+
 pub fn csv_parse(input_str: &str) -> Result<Csv, Box<dyn Error>> {
     let mut reader = ReaderBuilder::new().from_reader(input_str.as_bytes());
 
@@ -183,5 +196,18 @@ Bob    25      Los Angeles
         let input_str = "Name,Age,City\nAlice,30,New York\nBob,25,Los Angeles";
 
         assert_eq!(csv, csv_parse(input_str).unwrap());
+    }
+
+    #[test]
+    fn test_csv_open() {
+        let expected_str = "Name,Age,City\nAlice,30,New York\nBob,25,Los Angeles";
+
+        assert_eq!(csv_open("people.csv").unwrap(), expected_str);
+    }
+
+    #[test]
+    fn test_csv_nonexisting_file_open() {
+
+        assert!(csv_open("loremipsum.csv").is_err());
     }
 }

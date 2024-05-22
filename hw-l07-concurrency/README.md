@@ -6,7 +6,7 @@
 - [ ] Use channels to transfer data between threads
 - [ ] Input-Receiving Thread continuously reads from stdin and parse the received input in the format `<command> <input>`
 - [ ] Processing Thread analyzes received command received from the input thread and executes the appropriate operation
-- [ ] Adapt application to read CSV from a file using the `read_to_string()` function and handle any potential errors
+- [x] Adapt application to read CSV from a file using the `read_to_string()` function and handle any potential errors
 - [x] Bonus: Oneshot Functionality - the program enters the interactive mode only when there are no CLI arguments
 
 ## Running the example
