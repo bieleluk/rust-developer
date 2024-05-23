@@ -23,14 +23,23 @@ fn main() {
         // Create a channel for communication
         let (tx, rx) = mpsc::channel();
         // Spawn threads for input processing and for transofming the data
-        let handle_input = thread::spawn(move || input_parser(tx));
-        let handle_data = thread::spawn(move || data_processor(rx));
+        let handle_input = thread::spawn(move || {
+            if let Err(e) = input_parser(tx) {
+                eprintln!("Input parsing thread error: {e}");
+            }
+        });
+        let handle_data = thread::spawn(move || {
+            if let Err(e) = data_processor(rx) {
+                eprintln!("Data processing thread error: {e}");
+            }
+        });
+
         // Wait until thethreads finish execution
         let result_input = handle_input.join();
         let result_data = handle_data.join();
 
         match result_input {
-            Ok(_) => println!("Input parsing thread completed successfully."),
+            Ok(_) => println!("Input parsing thread joined correctly."),
             Err(e) => {
                 eprintln!("Input parsing thread panicked: {:?}", e);
                 exit(2);
@@ -38,7 +47,7 @@ fn main() {
         }
 
         match result_data {
-            Ok(_) => println!("Data processing thread completed successfully."),
+            Ok(_) => println!("Data processing thread joined correctly."),
             Err(e) => {
                 eprintln!("Input parser thread panicked: {:?}", e);
                 exit(2);
