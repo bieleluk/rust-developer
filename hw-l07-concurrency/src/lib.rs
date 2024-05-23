@@ -56,9 +56,14 @@ pub fn input_parser(tx: Sender<(Transformation, String)>) -> Result<(), Box<dyn 
         if parts.len() == 2 {
             let transformation_str = parts[0];
             let input_str = parts[1];
-            let command = Transformation::from_str(transformation_str)?;
-            let message = (command, input_str.to_string());
-            tx.send(message)?;
+
+            match Transformation::from_str(transformation_str) {
+                Ok(command) => {
+                    let message = (command, input_str.to_string());
+                    tx.send(message)?;
+                }
+                Err(e) => eprintln!("Error in parsing command: {}", e),
+            }
         } else {
             eprintln!("Invalid input -- expected: <command> <input>");
         }
