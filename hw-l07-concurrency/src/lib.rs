@@ -2,6 +2,7 @@ use std::error::Error;
 mod str_utils;
 use std::io::{stdin, Read};
 use std::str::FromStr;
+use std::sync::mpsc::{Receiver, Sender};
 use str_utils::{
     csv_formatted_str, csv_parse, double_str, remove_spaces, reverse, slugify_str, to_lowercase,
     to_uppercase,
@@ -36,12 +37,36 @@ impl FromStr for Transformation {
     }
 }
 
-pub fn input_parser() -> Result<(), Box<dyn Error + Send + Sync>> {
-    Ok(())
+pub fn input_parser(tx: Sender<(Transformation, String)>) -> Result<(), Box<dyn std::error::Error + Send>> {
+    let mut input_str = String::new();
+
+    loop {
+        input_str.clear();
+
+        println!("Insert transformation and data: <command> <input>");
+        stdin().read_line(&mut input_str)?;
+
+        let parts: Vec<&str> = input_str.trim().splitn(2, ' ').collect();
+        if parts.len() == 2 {
+            let transformation_str = parts[0];
+            let input_str = parts[1];
+            let command = Transformation::from_str(transformation_str)?;
+            let message = (command, input_str.to_string());
+            tx.send(message)?;
+        } else {
+            eprintln!("Invalid input -- expected: <command> <input>");
+        }
+    }
 }
 
-pub fn data_processor() -> Result<(), Box<dyn Error + Send + Sync>> {
-    Ok(())
+pub fn data_processor(rx: Receiver<(Transformation, String)>) {
+    for request in rx {
+        let (transformation, input_str) = request;
+        match transform(&input_str, transformation) {
+            Err(e) => eprintln!("Error '{e}' occurred!"),
+            Ok(result) => println!("{result}"),
+        };
+    }
 }
 
 pub fn run_complete(transformation_str: &str) -> Result<String, Box<dyn Error>> {
