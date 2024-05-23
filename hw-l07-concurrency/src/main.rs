@@ -1,6 +1,6 @@
 use concurrency::data_processor;
 use concurrency::input_parser;
-use concurrency::run_complete;
+use concurrency::run_unattended;
 use std::env::args;
 use std::process::exit;
 use std::sync::mpsc;
@@ -10,7 +10,7 @@ fn main() {
     // Parse cli arguments
     let args: Vec<String> = args().collect();
     if args.len() == 2 {
-        let result = run_complete(&args[1]);
+        let result = run_unattended(&args[1]);
 
         match result {
             Ok(result) => println!("{result}"),
