@@ -15,7 +15,7 @@ fn main() {
         match result {
             Ok(result) => println!("{result}"),
             Err(e) => {
-                eprintln!("Error '{e}' occurred!");
+                eprintln!("Error occurred: '{e}'");
                 exit(1);
             }
         }
