@@ -20,7 +20,7 @@ impl fmt::Display for Csv {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Calculate column widths
         let mut column_widths: Vec<usize> =
-            self.headers.iter().map(|header| header.len()).collect();
+        self.headers.iter().map(String::len).collect();
         for row in &self.rows {
             for (i, cell) in row.iter().enumerate() {
                 if let Some(width) = column_widths.get_mut(i) {
