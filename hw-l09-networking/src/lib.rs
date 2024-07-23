@@ -17,24 +17,34 @@ enum MessageType {
 impl MessageType {
     fn from_image(image_path: &Path) -> Result<Self, Box<dyn Error>> {
         if image_path.extension() != Some(OsStr::new("png")) {
-            return Err("Wrong image extension. Only PNG files are supported.".into());
+            return Ok(MessageType::Text(String::from(
+                "Wrong image extension. Only PNG files are supported.",
+            )));
         }
-        let mut file = File::open(image_path)?;
-        let mut content = Vec::new();
-        file.read_to_end(&mut content)?;
-        Ok(MessageType::Image(content))
+        match File::open(image_path) {
+            Ok(mut file) => {
+                let mut content = Vec::new();
+                file.read_to_end(&mut content)?;
+                Ok(MessageType::Image(content))
+            }
+            Err(_) => Ok(MessageType::Text(String::from("Error reading image"))),
+        }
     }
 
     fn from_file(file_path: &Path) -> Result<Self, Box<dyn Error>> {
-        let mut file = File::open(file_path)?;
-        let mut content = Vec::new();
-        file.read_to_end(&mut content)?;
-        let name = file_path
-            .file_name()
-            .unwrap()
-            .to_string_lossy()
-            .into_owned();
-        Ok(MessageType::File { name, content })
+        match File::open(file_path) {
+            Ok(mut file) => {
+                let mut content = Vec::new();
+                file.read_to_end(&mut content)?;
+                let name = file_path
+                    .file_name()
+                    .unwrap()
+                    .to_string_lossy()
+                    .into_owned();
+                Ok(MessageType::File { name, content })
+            }
+            Err(_) => Ok(MessageType::Text(String::from("Error reading file"))),
+        }
     }
 
     fn from_text(text: &str) -> Result<Self, Box<dyn Error>> {
@@ -88,6 +98,10 @@ fn handle_client(mut stream: TcpStream) -> Result<(), Box<dyn Error>> {
         println!("Sending message: {:?}", response);
         // Serialize and send
         send_response(&response, &mut stream)?;
+        if let MessageType::Quit = response {
+            stream.shutdown(std::net::Shutdown::Both)?;
+            return Ok(());
+        }
     }
 }
 
