@@ -1,5 +1,5 @@
 use std::error::Error;
-use std::io::{Read, Write};
+use std::io::{stdin, Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -77,17 +77,28 @@ pub fn create_client(ip: Option<Ipv4Addr>, port: Option<u16>) -> Result<TcpStrea
 }
 
 fn client_loop(mut stream: TcpStream) -> Result<(), Box<dyn Error>> {
-    // Send the message type
-    let message_type = "text";
-    stream
-        .write(message_type.as_bytes())
-        .expect("Failed to send message type");
+    loop {
+        // Read user input from stdin
+        let mut input = String::new();
+        stdin().read_line(&mut input)?;
+        let input = input.trim();
 
-    // Send the payload
-    let payload = "Hello, server!";
-    stream
-        .write(payload.as_bytes())
-        .expect("Failed to send payload");
+        if input.starts_with(".quit") {
+            println!("Terminating the client.");
+            break;
+        } else if input.starts_with(".file ") {
+            let path = input.trim_start_matches(".file ").trim();
+            println!("Sending the image with {} path", path);
+            continue;
+        } else if input.starts_with(".image ") {
+            let path = input.trim_start_matches(".image ").trim();
+            println!("Sending the image with {} path", path);
+            continue;
+        } else {
+            println!("Sending standard text message {}", input);
+            continue;
+        }
+    }
 
     Ok(())
 }
