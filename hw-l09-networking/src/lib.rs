@@ -11,10 +11,11 @@ enum MessageType {
     Text(String),
     Image(Vec<u8>),
     File { name: String, content: Vec<u8> },
+    Quit,
 }
 
 impl MessageType {
-    fn new_png_image(image_path: &Path) -> Result<Self, Box<dyn Error>> {
+    fn from_image(image_path: &Path) -> Result<Self, Box<dyn Error>> {
         if image_path.extension() != Some(OsStr::new("png")) {
             return Err("Wrong image extension. Only PNG files are supported.".into());
         }
@@ -24,7 +25,7 @@ impl MessageType {
         Ok(MessageType::Image(content))
     }
 
-    fn new_file(file_path: &Path) -> Result<Self, Box<dyn Error>> {
+    fn from_file(file_path: &Path) -> Result<Self, Box<dyn Error>> {
         let mut file = File::open(file_path)?;
         let mut content = Vec::new();
         file.read_to_end(&mut content)?;
@@ -36,46 +37,8 @@ impl MessageType {
         Ok(MessageType::File { name, content })
     }
 
-    fn new_text(text: &str) -> Result<Self, Box<dyn Error>> {
+    fn from_text(text: &str) -> Result<Self, Box<dyn Error>> {
         Ok(MessageType::Text(text.to_string()))
-    }
-}
-
-impl MessageType {
-    fn send(&self, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
-        let encoded: Vec<u8> = bincode::serialize(self).unwrap();
-        stream.write_all(&encoded)?;
-        Ok(())
-    }
-
-    fn receive(stream: &mut TcpStream) -> Result<Option<MessageType>, Box<dyn Error>> {
-        let mut buffer = Vec::new();
-
-        loop {
-            // Read data from the stream into a temporary buffer
-            let mut temp_buffer = [0; 100];
-            let bytes_read = match stream.read(&mut temp_buffer) {
-                Ok(0) => return Ok(None), // Connection closed
-                Ok(n) => n,
-                Err(e) => return Err(e.into()),
-            };
-
-            // Append the read data to the main buffer
-            buffer.extend_from_slice(&temp_buffer[..bytes_read]);
-
-            // Attempt to deserialize the buffer
-            match bincode::deserialize::<MessageType>(&buffer) {
-                Ok(message) => {
-                    // Return the successfully deserialized message
-                    return Ok(Some(message));
-                }
-                Err(_) => {
-                    // If deserialization fails, it might be due to incomplete data,
-                    // so continue reading more data from the stream
-                    println!("Failed to deserialize message, continue reading");
-                }
-            }
-        }
     }
 }
 
@@ -120,13 +83,46 @@ fn server_loop(listener: TcpListener) -> Result<(), Box<dyn Error>> {
 fn handle_client(mut stream: TcpStream) -> Result<(), Box<dyn Error>> {
     println!("Handling client");
     loop {
-        if let Some(message) = MessageType::receive(&mut stream)? {
-            println!("Received message {:?}", message);
-        } else {
-            println!("Connection closed");
-            return Ok(());
-        }
+        let request = receive_request(&mut stream)?;
+        let response = create_response(&request)?;
+        println!("Sending message: {:?}", response);
+        // Serialize and send
+        send_response(&response, &mut stream)?;
     }
+}
+
+fn receive_request(stream: &mut TcpStream) -> Result<String, Box<dyn Error>> {
+    let mut buffer = [0; 100];
+    let n = match stream.read(&mut buffer) {
+        Ok(0) => return Err("Connection closed".into()), // Connection closed
+        Ok(n) => n,
+        Err(e) => return Err(e.into()),
+    };
+
+    let request = String::from_utf8(buffer[..n].to_vec())?;
+    Ok(request)
+}
+
+fn create_response(input: &String) -> Result<MessageType, Box<dyn Error>> {
+    // Create a message
+    let message = if input.starts_with(".quit") {
+        Ok(MessageType::Quit)
+    } else if input.starts_with(".file ") {
+        let path = Path::new(input.trim_start_matches(".file ").trim());
+        MessageType::from_file(path)
+    } else if input.starts_with(".image ") {
+        let path = Path::new(input.trim_start_matches(".image ").trim());
+        MessageType::from_image(path)
+    } else {
+        MessageType::from_text(input)
+    }?;
+    Ok(message)
+}
+
+fn send_response(message: &MessageType, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
+    let encoded: Vec<u8> = bincode::serialize(message).unwrap();
+    stream.write_all(&encoded)?;
+    Ok(())
 }
 
 pub fn start_client(ip: Option<Ipv4Addr>, port: Option<u16>) -> Result<(), Box<dyn Error>> {
@@ -151,29 +147,56 @@ fn client_loop(mut stream: TcpStream) -> Result<(), Box<dyn Error>> {
         // Read user input from stdin
         let mut input = String::new();
         stdin().read_line(&mut input)?;
-        let input = input.trim();
 
-        // Check for quit command
-        if input.starts_with(".quit") {
-            println!("Terminating the client.");
-            break;
+        // Send request to server
+        let request = input.trim().as_bytes();
+        stream.write_all(request)?;
+
+        let response = receive_response(&mut stream)?;
+        match response {
+            MessageType::Text(text) => {
+                println!("Received text: {text}");
+            }
+            MessageType::Image(content) => {
+                println!("Received image");
+            }
+            MessageType::File { name, content } => {
+                println!("Received file with name: {name}");
+            }
+            MessageType::Quit => {
+                println!("Quitting");
+                return Ok(());
+            }
         }
-
-        // Create a message
-        let message = if input.starts_with(".file ") {
-            let path = Path::new(input.trim_start_matches(".file ").trim());
-            MessageType::new_file(path)
-        } else if input.starts_with(".image ") {
-            let path = Path::new(input.trim_start_matches(".image ").trim());
-            MessageType::new_png_image(path)
-        } else {
-            MessageType::new_text(input)
-        }?;
-        println!("Sending message: {:?}", message);
-
-        // Serialize and send
-        message.send(&mut stream)?;
     }
+}
 
-    Ok(())
+fn receive_response(stream: &mut TcpStream) -> Result<MessageType, Box<dyn Error>> {
+    let mut buffer = Vec::new();
+
+    loop {
+        // Read data from the stream into a temporary buffer
+        let mut temp_buffer = [0; 100];
+        let bytes_read = match stream.read(&mut temp_buffer) {
+            Ok(0) => return Err("Connection closed".into()), // Connection closed
+            Ok(n) => n,
+            Err(e) => return Err(e.into()),
+        };
+
+        // Append the read data to the main buffer
+        buffer.extend_from_slice(&temp_buffer[..bytes_read]);
+
+        // Attempt to deserialize the buffer
+        match bincode::deserialize::<MessageType>(&buffer) {
+            Ok(message) => {
+                // Return the successfully deserialized message
+                return Ok(message);
+            }
+            Err(_) => {
+                // If deserialization fails, it might be due to incomplete data,
+                // so continue reading more data from the stream
+                println!("Failed to deserialize message, continue reading");
+            }
+        }
+    }
 }
