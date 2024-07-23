@@ -15,7 +15,14 @@ fn main() {
     thread::sleep(std::time::Duration::from_secs(1));
 
     // Start the client
-   let _ = start_client(Some(ip), Some(port));
+    match start_client(Some(ip), Some(port)) {
+        Ok(_) => {
+            println!("Client execution finished without error")
+        }
+        Err(e) => {
+            eprintln!("Client execution finished error: {e}")
+        }
+    }
 
     // Wait for the server thread to finish (it won't in this example)
     server_handle.join().unwrap();
