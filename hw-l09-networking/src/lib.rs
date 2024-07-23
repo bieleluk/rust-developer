@@ -47,6 +47,36 @@ impl MessageType {
         stream.write_all(&encoded)?;
         Ok(())
     }
+
+    fn receive(stream: &mut TcpStream) -> Result<Option<MessageType>, Box<dyn Error>> {
+        let mut buffer = Vec::new();
+
+        loop {
+            // Read data from the stream into a temporary buffer
+            let mut temp_buffer = [0; 100];
+            let bytes_read = match stream.read(&mut temp_buffer) {
+                Ok(0) => return Ok(None), // Connection closed
+                Ok(n) => n,
+                Err(e) => return Err(e.into()),
+            };
+
+            // Append the read data to the main buffer
+            buffer.extend_from_slice(&temp_buffer[..bytes_read]);
+
+            // Attempt to deserialize the buffer
+            match bincode::deserialize::<MessageType>(&buffer) {
+                Ok(message) => {
+                    // Return the successfully deserialized message
+                    return Ok(Some(message));
+                }
+                Err(_) => {
+                    // If deserialization fails, it might be due to incomplete data,
+                    // so continue reading more data from the stream
+                    println!("Failed to deserialize message, continue reading");
+                }
+            }
+        }
+    }
 }
 
 pub fn start_server(ip: Option<Ipv4Addr>, port: Option<u16>) -> Result<(), Box<dyn Error>> {
@@ -71,9 +101,14 @@ fn create_server(ip: Option<Ipv4Addr>, port: Option<u16>) -> Result<TcpListener,
 fn server_loop(listener: TcpListener) -> Result<(), Box<dyn Error>> {
     for stream in listener.incoming() {
         match stream {
-            Ok(stream) => {
-                let _ = handle_client(stream);
-            }
+            Ok(stream) => match handle_client(stream) {
+                Ok(_) => {
+                    println!("Handling of client finished without error")
+                }
+                Err(e) => {
+                    println!("Handling of client finished with error: {}", e)
+                }
+            },
             Err(e) => {
                 eprintln!("Failed to accept connection: {}", e);
             }
@@ -83,17 +118,15 @@ fn server_loop(listener: TcpListener) -> Result<(), Box<dyn Error>> {
 }
 
 fn handle_client(mut stream: TcpStream) -> Result<(), Box<dyn Error>> {
-    let mut buffer = [0; 512];
-    match stream.read(&mut buffer) {
-        Ok(_) => {
-            let received = String::from_utf8_lossy(&buffer[..]);
-            println!("Received: {}", received);
-        }
-        Err(e) => {
-            eprintln!("Failed to receive data: {}", e);
+    println!("Handling client");
+    loop {
+        if let Some(message) = MessageType::receive(&mut stream)? {
+            println!("Received message {:?}", message);
+        } else {
+            println!("Connection closed");
+            return Ok(());
         }
     }
-    Ok(())
 }
 
 pub fn start_client(ip: Option<Ipv4Addr>, port: Option<u16>) -> Result<(), Box<dyn Error>> {
@@ -136,7 +169,7 @@ fn client_loop(mut stream: TcpStream) -> Result<(), Box<dyn Error>> {
         } else {
             MessageType::new_text(input)
         }?;
-        println!("{:?}", message);
+        println!("Sending message: {:?}", message);
 
         // Serialize and send
         message.send(&mut stream)?;
