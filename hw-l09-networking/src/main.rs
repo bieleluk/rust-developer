@@ -1,9 +1,9 @@
-use std::thread;
-use networking::{start_server, start_client};
+use networking::{start_client, start_server};
 use std::net::Ipv4Addr;
+use std::thread;
 
 fn main() {
-    let ip: Ipv4Addr = Ipv4Addr::new(127,0,0,1);
+    let ip: Ipv4Addr = Ipv4Addr::new(127, 0, 0, 1);
     let port: u16 = 11111;
 
     // Start the server in a separate thread
