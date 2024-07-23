@@ -1,10 +1,13 @@
+use chrono::Local;
+use image::{load_from_memory, ImageFormat};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::ffi::OsStr;
+use std::fs::create_dir_all;
 use std::fs::File;
 use std::io::{stdin, Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[derive(Serialize, Deserialize, Debug)]
 enum MessageType {
@@ -50,6 +53,40 @@ impl MessageType {
     fn from_text(text: &str) -> Result<Self, Box<dyn Error>> {
         Ok(MessageType::Text(text.to_string()))
     }
+
+    fn to_image(&self) -> Result<(), Box<dyn Error>> {
+        if let MessageType::Image(ref content) = *self {
+            // Create images directory
+            create_dir_all("images")?;
+            // timestamp name
+            let name = format!("{}.png", Local::now().format("%Y-%m-%d_%H-%M-%S").to_string());
+            // Create a PathBuf for the image path
+            let path: PathBuf = PathBuf::from("images").join(name);
+
+            File::create(&path)?;
+            let img = load_from_memory(content)?;
+            img.save_with_format(path, ImageFormat::Png)?;
+
+            Ok(())
+        } else {
+            Err("Not an Image message type".into())
+        }
+    }
+
+    fn to_file(&self) -> Result<(), Box<dyn Error>> {
+        if let MessageType::File { ref name, ref content } = *self {
+            // Create files directory
+            create_dir_all("files")?;
+            // Create a PathBuf for the image path
+            let path: PathBuf = PathBuf::from("files").join(name);
+
+            let mut file = File::create(path)?;
+            file.write_all(content)?;
+            Ok(())
+        } else {
+            Err("Not a File message type".into())
+        }
+    }
 }
 
 pub fn start_server(ip: Option<Ipv4Addr>, port: Option<u16>) -> Result<(), Box<dyn Error>> {
@@ -75,9 +112,7 @@ fn server_loop(listener: TcpListener) -> Result<(), Box<dyn Error>> {
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => match handle_client(stream) {
-                Ok(_) => {
-                    println!("Handling of client finished without error")
-                }
+                Ok(_) => {}
                 Err(e) => {
                     println!("Handling of client finished with error: {}", e)
                 }
@@ -91,12 +126,9 @@ fn server_loop(listener: TcpListener) -> Result<(), Box<dyn Error>> {
 }
 
 fn handle_client(mut stream: TcpStream) -> Result<(), Box<dyn Error>> {
-    println!("Handling client");
     loop {
         let request = receive_request(&mut stream)?;
         let response = create_response(&request)?;
-        println!("Sending message: {:?}", response);
-        // Serialize and send
         send_response(&response, &mut stream)?;
         if let MessageType::Quit = response {
             stream.shutdown(std::net::Shutdown::Both)?;
@@ -171,11 +203,13 @@ fn client_loop(mut stream: TcpStream) -> Result<(), Box<dyn Error>> {
             MessageType::Text(text) => {
                 println!("Received text: {text}");
             }
-            MessageType::Image(content) => {
-                println!("Received image");
+            MessageType::Image(_) => {
+                println!("Received image...");
+                response.to_image()?;
             }
-            MessageType::File { name, content } => {
-                println!("Received file with name: {name}");
+            MessageType::File { ref name, content: _ } => {
+                println!("Received file {name}");
+                response.to_file()?;
             }
             MessageType::Quit => {
                 println!("Quitting");
@@ -209,7 +243,7 @@ fn receive_response(stream: &mut TcpStream) -> Result<MessageType, Box<dyn Error
             Err(_) => {
                 // If deserialization fails, it might be due to incomplete data,
                 // so continue reading more data from the stream
-                println!("Failed to deserialize message, continue reading");
+                // println!("Failed to deserialize message, continue reading");
             }
         }
     }
