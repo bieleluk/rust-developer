@@ -1,10 +1,12 @@
+use serde::{Deserialize, Serialize};
 use std::error::Error;
+use std::ffi::OsStr;
+use std::fs::File;
 use std::io::{stdin, Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
-
-#[derive(Serialize, Deserialize, Debug)]
 use std::path::Path;
 
+#[derive(Serialize, Deserialize, Debug)]
 enum MessageType {
     Text(String),
     Image(Vec<u8>),
@@ -36,6 +38,14 @@ impl MessageType {
 
     fn new_text(text: &str) -> Result<Self, Box<dyn Error>> {
         Ok(MessageType::Text(text.to_string()))
+    }
+}
+
+impl MessageType {
+    fn send(&self, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
+        let encoded: Vec<u8> = bincode::serialize(self).unwrap();
+        stream.write_all(&encoded)?;
+        Ok(())
     }
 }
 
@@ -127,6 +137,9 @@ fn client_loop(mut stream: TcpStream) -> Result<(), Box<dyn Error>> {
             MessageType::new_text(input)
         }?;
         println!("{:?}", message);
+
+        // Serialize and send
+        message.send(&mut stream)?;
     }
 
     Ok(())
