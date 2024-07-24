@@ -1,5 +1,4 @@
 
 pub mod client;
 pub mod server;
-
-mod common;
+pub mod common;
