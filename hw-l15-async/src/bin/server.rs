@@ -1,29 +1,24 @@
+use anyhow::{Context, Ok, Result};
 use env_logger;
-use log::{error, info};
+use log::info;
 use networking::common::parse_addr;
 use networking::server::start_server;
 use std::env;
 
-fn main() {
+#[tokio::main]
+async fn main() -> Result<()> {
     // Initialize the logger
     env_logger::init();
 
     // Parse port and ipv4 addr from the arguments
     let args: Vec<String> = env::args().collect();
-    let (ip, port) = parse_addr(&args[1..]).unwrap_or_else(|e| {
-        error!("{e}");
-        std::process::exit(1);
-    });
+    let (ip, port) = parse_addr(&args[1..]).context("Failed to parse address")?;
     info!("Parsed address is: {}:{}", ip, port);
 
-    // Start the client
-    match start_server(ip, port) {
-        Ok(_) => {
-            info!("Server execution finished without error");
-        }
-        Err(e) => {
-            error!("Server execution finished error: {e}");
-            std::process::exit(1);
-        }
-    }
+    // Start the server
+    start_server(ip, port)
+        .await
+        .context("Server execution finished error")?;
+    info!("Server execution finished without error");
+    Ok(())
 }
