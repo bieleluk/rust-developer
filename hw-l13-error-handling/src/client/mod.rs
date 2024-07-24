@@ -1,7 +1,7 @@
 use crate::common::MessageType;
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 use log::{info, trace};
-use std::io::{stdin, Read, Write};
+use std::io::{stdin, Write};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpStream};
 
 /// Starts the client, connecting to the specified IP and port.
@@ -47,7 +47,7 @@ Any other will be returned as a plain text"
         trace!("Waiting for the response");
 
         // Receive the response from the server
-        let response = receive_response(&mut stream).context("Response receiving failed")?;
+        let response = MessageType::receive(&mut stream).context("Response receiving failed")?;
         // Take action based on the response
         match response {
             MessageType::Text(text) => {
@@ -67,37 +67,6 @@ Any other will be returned as a plain text"
             MessageType::Quit => {
                 info!("Quitting");
                 return Ok(());
-            }
-        }
-    }
-}
-
-/// Receives a response from the server.
-fn receive_response(stream: &mut TcpStream) -> Result<MessageType> {
-    let mut buffer = Vec::new();
-
-    loop {
-        // Read data from the stream into a temporary buffer
-        let mut temp_buffer = [0; 100];
-        let bytes_read = match stream.read(&mut temp_buffer) {
-            Ok(0) => bail!("Connection closed"),
-            Ok(n) => n,
-            Err(e) => bail!(e),
-        };
-
-        // Append the read data to the main buffer
-        buffer.extend_from_slice(&temp_buffer[..bytes_read]);
-
-        // Attempt to deserialize the buffer
-        match bincode::deserialize::<MessageType>(&buffer) {
-            Ok(message) => {
-                // Return the successfully deserialized message
-                return Ok(message);
-            }
-            Err(_) => {
-                // If deserialization fails, it might be due to incomplete data,
-                // so continue reading more data from the stream
-                trace!("Failed to deserialize message, continue reading");
             }
         }
     }

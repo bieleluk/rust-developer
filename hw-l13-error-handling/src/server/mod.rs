@@ -1,7 +1,7 @@
 use crate::common::MessageType;
 use anyhow::{bail, Context, Result};
 use log::{error, info, trace};
-use std::io::{Read, Write};
+use std::io::Read;
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::path::Path;
 use std::thread;
@@ -59,7 +59,7 @@ fn handle_client(mut stream: TcpStream) -> Result<()> {
         let response = create_response(&request).context("Failed to create response")?;
         trace!("Sending response to {peer}");
         // Send the response to the client
-        send_response(&response, &mut stream).context("Response sending failed")?;
+        response.send(&mut stream).context("Response sending failed")?;
         // Shutdown the connection if Quit message
         if let MessageType::Quit = response {
             info!("Shutting down connection with {peer}");
@@ -87,7 +87,7 @@ fn receive_request(stream: &mut TcpStream) -> Result<String> {
 fn create_response(input: &String) -> Result<MessageType> {
     // Create a message based on the input command
     let message = if input.starts_with(".quit") {
-        Ok(MessageType::Quit)
+        MessageType::Quit
     } else if input.starts_with(".file ") {
         let path = Path::new(input.trim_start_matches(".file ").trim());
         MessageType::from_file(path)
@@ -96,15 +96,6 @@ fn create_response(input: &String) -> Result<MessageType> {
         MessageType::from_image(path)
     } else {
         MessageType::from_text(input)
-    }?;
+    };
     Ok(message)
-}
-
-/// Sends the response back to the client.
-fn send_response(message: &MessageType, stream: &mut TcpStream) -> Result<()> {
-    // Serialize the message
-    let encoded: Vec<u8> = bincode::serialize(message).unwrap();
-    // Write the serialized message to the stream
-    stream.write_all(&encoded)?;
-    Ok(())
 }
