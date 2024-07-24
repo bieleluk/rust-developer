@@ -1,11 +1,13 @@
 use chrono::Local;
 use image::{load_from_memory, ImageFormat};
+use log::trace;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::ffi::OsStr;
 use std::fs::create_dir_all;
 use std::fs::File;
 use std::io::{Read, Write};
+use std::net::Ipv4Addr;
 use std::path::{Path, PathBuf};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -104,4 +106,28 @@ impl MessageType {
             Err("Not a File message type".into())
         }
     }
+}
+
+pub fn parse_addr(args: &[String]) -> (Ipv4Addr, u16) {
+    // Set default IP address and port
+    let mut ip = Ipv4Addr::LOCALHOST;
+    let mut port = 11111;
+    trace!("Default socket addr: {}:{}", ip, port);
+
+    trace!("Number of arguments: {}, arguments: {:?}", args.len(), args);
+
+    // Update port and IP address based on provided arguments
+    if args.len() > 0 {
+        port = args[0].parse::<u16>().expect("Error parsing port");
+    } else {
+        trace!("Using default port number")
+    }
+    if args.len() > 1 {
+        ip = args[1]
+            .parse::<Ipv4Addr>()
+            .expect("Error parsing ip address");
+    } else {
+        trace!("Using default ipv4 address");
+    }
+    (ip, port)
 }

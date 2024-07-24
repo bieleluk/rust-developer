@@ -4,8 +4,8 @@ use std::error::Error;
 use std::io::{stdin, Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpStream};
 
-/// Starts the client, connecting to the specified IP and port or defaults if none are provided.
-pub fn start_client(ip: Option<Ipv4Addr>, port: Option<u16>) -> Result<(), Box<dyn Error>> {
+/// Starts the client, connecting to the specified IP and port.
+pub fn start_client(ip: Ipv4Addr, port: u16) -> Result<(), Box<dyn Error>> {
     // Create the client stream
     let stream = create_client(ip, port)?;
     // Start the client loop to handle communication with the server
@@ -13,13 +13,9 @@ pub fn start_client(ip: Option<Ipv4Addr>, port: Option<u16>) -> Result<(), Box<d
     Ok(())
 }
 
-/// Creates a TcpStream to connect to the specified IP and port or defaults if none are provided.
-pub fn create_client(ip: Option<Ipv4Addr>, port: Option<u16>) -> Result<TcpStream, Box<dyn Error>> {
-    // Use the provided IP and port or default to localhost and port 11111
-    let ip = ip.unwrap_or(Ipv4Addr::LOCALHOST);
-    let port = port.unwrap_or(11111);
-
-    // Create the socket address
+/// Creates a TcpStream to connect to the specified IP and port.
+pub fn create_client(ip: Ipv4Addr, port: u16) -> Result<TcpStream, Box<dyn Error>> {
+    // Use the provided IP and port to create the socket address
     let sock_addr = SocketAddr::V4(SocketAddrV4::new(ip, port));
     trace!("Connecting..."); // Trace log for connection attempt
     let stream = TcpStream::connect(sock_addr)?; // Connect to the server

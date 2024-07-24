@@ -6,8 +6,8 @@ use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::path::Path;
 use std::thread;
 
-/// Starts the server with the specified IP and port or defaults if none are provided.
-pub fn start_server(ip: Option<Ipv4Addr>, port: Option<u16>) -> Result<(), Box<dyn Error>> {
+/// Starts the server with the specified IP and port.
+pub fn start_server(ip: Ipv4Addr, port: u16) -> Result<(), Box<dyn Error>> {
     // Create the server listener
     let server = create_server(ip, port)?;
     // Start the server loop to handle incoming connections
@@ -15,12 +15,9 @@ pub fn start_server(ip: Option<Ipv4Addr>, port: Option<u16>) -> Result<(), Box<d
     Ok(())
 }
 
-/// Creates a TcpListener bound to the specified IP and port or defaults if none are provided.
-fn create_server(ip: Option<Ipv4Addr>, port: Option<u16>) -> Result<TcpListener, Box<dyn Error>> {
-    // Use the provided IP and port or default to localhost:11111
-    let ip = ip.unwrap_or(Ipv4Addr::LOCALHOST);
-    let port = port.unwrap_or(11111);
-
+/// Creates a TcpListener bound to the specified IP and port.
+fn create_server(ip: Ipv4Addr, port: u16) -> Result<TcpListener, Box<dyn Error>> {
+    // Use the provided IP and port
     let sock_addr = SocketAddr::V4(SocketAddrV4::new(ip, port));
     trace!("Binding...");
     // Bind the TcpListener to the socket address
