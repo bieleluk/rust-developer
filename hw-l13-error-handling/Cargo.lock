@@ -635,6 +635,7 @@ dependencies = [
  "image",
  "log",
  "serde",
+ "thiserror",
 ]
 
 [[package]]
