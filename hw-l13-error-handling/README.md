@@ -1,20 +1,19 @@
-# Homework 11 - Rust Ecosystem
+# Homework 13 - Error Handling
 
 ## Objective
 
-- [x] Cargo Crates Conversion
-  - If you have not already, transform both the client and server parts of your chat application into separate Cargo crates.
-  - Structure your project directory to clearly separate the two parts of the application.
-- [x] Shared Functionality
-  - Identify any shared functionality between the client and server.
-  - Consider abstracting this shared code into a third "library" crate that both the client and server can utilize.
-- [x] Production-Ready Libraries
-  - Introduce production-ready libraries for key functionalities, such as `log` (with some backend).
-- [x] Documentation and Comments
-  - Update your `README.md` to document how to use the new crates and any significant changes you've made to the application structure.
-  - Add comments throughout your code to explain your reasoning and provide guidance on how the code works.
-- [x] Refactoring
-  - Refactor your existing codebase to make use of the new crates and shared library, ensuring that everything is cleanly integrated and operates smoothly.
+- [ ] Integrate Anyhow and Thiserror
+  - Introduce the `anyhow` crate to manage errors in a straightforward, flexible way. This crate is especially useful for handling errors that don't need much context or are unexpected.
+  - Utilize the `thiserror` crate to create custom, meaningful error types for your application. This is particularly beneficial for errors where you need more context and structured data.
+- [ ] Error Handling in the Server
+  - Ensure that your server accurately reports errors to the client in a strongly-typed manner. Any operation that can fail should communicate its failure reason clearly and specifically.
+- [ ] Client-Side Error Management
+  - Modify the client to handle and display error messages received from the server appropriately. Ensure that these messages are user-friendly and informative.
+- [x] Refactoring for Error Handling
+  - Review your existing codebase for both the client and server. Identify areas where error handling can be improved and implement changes using `anyhow` and `thiserror`.
+  - Pay special attention to operations that involve network communication, file handling, and data parsing, as these are common sources of errors.
+- [x] Documentation and Testing
+  - Test various failure scenarios to ensure that errors are handled gracefully and the error messages are clear and helpful.
 
 ## Running the example
 
