@@ -1,8 +1,8 @@
-
+use crate::common::MessageType;
+use log::{info, trace};
 use std::error::Error;
 use std::io::{stdin, Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpStream};
-use crate::common::MessageType;
 
 pub fn start_client(ip: Option<Ipv4Addr>, port: Option<u16>) -> Result<(), Box<dyn Error>> {
     let stream = create_client(ip, port)?;
@@ -16,36 +16,51 @@ pub fn create_client(ip: Option<Ipv4Addr>, port: Option<u16>) -> Result<TcpStrea
     let port = port.unwrap_or(11111);
 
     let sock_addr = SocketAddr::V4(SocketAddrV4::new(ip, port));
+    trace!("Connecting...");
     let stream = TcpStream::connect(sock_addr)?;
-    println!("Client connected to {sock_addr}");
+    trace!("Local address: {}", stream.local_addr().unwrap());
+    info!("Connected to {sock_addr}");
     Ok(stream)
 }
 
 fn client_loop(mut stream: TcpStream) -> Result<(), Box<dyn Error>> {
+
+    info!("Use one of the following requests:
+    .image <image.png>
+    .file <file>
+    .quit
+Any other will be returned as a plain text");
+
     loop {
         // Read user input from stdin
+        info!("Insert the request");
         let mut input = String::new();
         stdin().read_line(&mut input)?;
 
         // Send request to server
         let request = input.trim().as_bytes();
+        trace!("Sending request: {:?}", request);
         stream.write_all(request)?;
 
+        trace!("Waiting for the response");
         let response = receive_response(&mut stream)?;
         match response {
             MessageType::Text(text) => {
-                println!("Received text: {text}");
+                info!("Received text: {text}");
             }
             MessageType::Image(_) => {
-                println!("Received image...");
+                info!("Received image...");
                 response.to_image()?;
             }
-            MessageType::File { ref name, content: _ } => {
-                println!("Received file {name}");
+            MessageType::File {
+                ref name,
+                content: _,
+            } => {
+                info!("Received file {name}");
                 response.to_file()?;
             }
             MessageType::Quit => {
-                println!("Quitting");
+                info!("Quitting");
                 return Ok(());
             }
         }
@@ -76,7 +91,7 @@ fn receive_response(stream: &mut TcpStream) -> Result<MessageType, Box<dyn Error
             Err(_) => {
                 // If deserialization fails, it might be due to incomplete data,
                 // so continue reading more data from the stream
-                // println!("Failed to deserialize message, continue reading");
+                trace!("Failed to deserialize message, continue reading");
             }
         }
     }
