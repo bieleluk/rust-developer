@@ -1,23 +1,20 @@
-# Homework 9 - Networking
+# Homework 11 - Rust Ecosystem
 
 ## Objective
 
-- [x] Design the server to receive messages from multiple clients.
-  - Accept port and hostname as parameters. If none are provided, default to `localhost:11111`.
-  - Setting the hostname to `0.0.0.0` will allow connections from any IP.
-- [x] Design the client that can connect to the server to send messages.
-  - It should accept port and hostname parameters, defaulting to `localhost:11111` if not given.
-- [x] Client should read input from stdin and recognize three distinct message types:
-  - `.file <path>`: Sends a file to the server.
-  - `.image <path>`: Sends an image (assumed or required to be `.png`).
-  - Any other text: Considered a standard text message.
-  - The `.quit` command should terminate the client.
-
-- [x] Server-side File Handling
-  - Received images should be stored in the `images/` directory, named by `<timestamp>.png`.
-  - Other received files should be stored in the `files/` directory.
-  - Incoming text messages should be displayed directly in stdout.
-  - Notifications `Receiving image...` and `Receiving <filename>` are displayed for incoming files.
+- [x] Cargo Crates Conversion
+  - If you have not already, transform both the client and server parts of your chat application into separate Cargo crates.
+  - Structure your project directory to clearly separate the two parts of the application.
+- [x] Shared Functionality
+  - Identify any shared functionality between the client and server.
+  - Consider abstracting this shared code into a third "library" crate that both the client and server can utilize.
+- [x] Production-Ready Libraries
+  - Introduce production-ready libraries for key functionalities, such as `log` (with some backend).
+- [x] Documentation and Comments
+  - Update your `README.md` to document how to use the new crates and any significant changes you've made to the application structure.
+  - Add comments throughout your code to explain your reasoning and provide guidance on how the code works.
+- [x] Refactoring
+  - Refactor your existing codebase to make use of the new crates and shared library, ensuring that everything is cleanly integrated and operates smoothly.
 
 ## Running the example
 
