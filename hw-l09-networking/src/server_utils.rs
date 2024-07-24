@@ -1,9 +1,9 @@
+use crate::MessageType;
 use std::error::Error;
 use std::io::{Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::path::Path;
-use crate::MessageType;
-
+use std::thread;
 
 pub fn start_server(ip: Option<Ipv4Addr>, port: Option<u16>) -> Result<(), Box<dyn Error>> {
     let server = create_server(ip, port)?;
@@ -27,12 +27,16 @@ fn create_server(ip: Option<Ipv4Addr>, port: Option<u16>) -> Result<TcpListener,
 fn server_loop(listener: TcpListener) -> Result<(), Box<dyn Error>> {
     for stream in listener.incoming() {
         match stream {
-            Ok(stream) => match handle_client(stream) {
-                Ok(_) => {}
-                Err(e) => {
-                    println!("Handling of client finished with error: {}", e)
-                }
-            },
+            Ok(stream) => {
+                let peer_addr = stream.peer_addr().unwrap();
+                println!("Accepted connection from {:?}", peer_addr);
+
+                // Spawn a new thread to handle the client
+                thread::spawn(move || match handle_client(stream) {
+                    Ok(_) => println!("Client {:?} handled successfully", peer_addr),
+                    Err(e) => eprintln!("Error handling client {:?}: {}", peer_addr, e),
+                });
+            }
             Err(e) => {
                 eprintln!("Failed to accept connection: {}", e);
             }
