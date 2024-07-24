@@ -1,4 +1,4 @@
-use networking::start_client;
+use networking::client::start_client;
 use std::env;
 use std::net::Ipv4Addr;
 

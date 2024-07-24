@@ -1,4 +1,4 @@
-use crate::MessageType;
+use crate::common::MessageType;
 use std::error::Error;
 use std::io::{Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
