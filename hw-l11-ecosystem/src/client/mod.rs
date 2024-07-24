@@ -2,7 +2,7 @@
 use std::error::Error;
 use std::io::{stdin, Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpStream};
-use crate::MessageType;
+use crate::common::MessageType;
 
 pub fn start_client(ip: Option<Ipv4Addr>, port: Option<u16>) -> Result<(), Box<dyn Error>> {
     let stream = create_client(ip, port)?;
