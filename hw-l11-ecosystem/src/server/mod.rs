@@ -1,4 +1,5 @@
 use crate::common::MessageType;
+use log::{error, info, trace};
 use std::error::Error;
 use std::io::{Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
@@ -8,8 +9,6 @@ use std::thread;
 pub fn start_server(ip: Option<Ipv4Addr>, port: Option<u16>) -> Result<(), Box<dyn Error>> {
     let server = create_server(ip, port)?;
     server_loop(server)?;
-    println!("Server execution finished");
-
     Ok(())
 }
 
@@ -19,8 +18,9 @@ fn create_server(ip: Option<Ipv4Addr>, port: Option<u16>) -> Result<TcpListener,
     let port = port.unwrap_or(11111);
 
     let sock_addr = SocketAddr::V4(SocketAddrV4::new(ip, port));
+    trace!("Binding...");
     let listener = TcpListener::bind(sock_addr)?;
-    println!("Listener {sock_addr} created");
+    info!("Listener binded to {sock_addr}");
     Ok(listener)
 }
 
@@ -29,16 +29,16 @@ fn server_loop(listener: TcpListener) -> Result<(), Box<dyn Error>> {
         match stream {
             Ok(stream) => {
                 let peer_addr = stream.peer_addr().unwrap();
-                println!("Accepted connection from {:?}", peer_addr);
+                info!("Accepted connection from {:?}", peer_addr);
 
                 // Spawn a new thread to handle the client
                 thread::spawn(move || match handle_client(stream) {
-                    Ok(_) => println!("Client {:?} handled successfully", peer_addr),
-                    Err(e) => eprintln!("Error handling client {:?}: {}", peer_addr, e),
+                    Ok(_) => info!("Client {:?} handled successfully", peer_addr),
+                    Err(e) => error!("Error handling client {:?}: {}", peer_addr, e),
                 });
             }
             Err(e) => {
-                eprintln!("Failed to accept connection: {}", e);
+                error!("Failed to accept connection: {}", e);
             }
         }
     }
@@ -46,11 +46,15 @@ fn server_loop(listener: TcpListener) -> Result<(), Box<dyn Error>> {
 }
 
 fn handle_client(mut stream: TcpStream) -> Result<(), Box<dyn Error>> {
+    let peer = stream.peer_addr().unwrap();
     loop {
         let request = receive_request(&mut stream)?;
+        trace!("Received request '{}' from client {}", request, peer);
         let response = create_response(&request)?;
+        trace!("Sending response to {peer}");
         send_response(&response, &mut stream)?;
         if let MessageType::Quit = response {
+            info!("Shutting down connection with {peer}");
             stream.shutdown(std::net::Shutdown::Both)?;
             return Ok(());
         }
