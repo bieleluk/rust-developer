@@ -22,3 +22,4 @@ image = "0.25.2"
 log = "0.4.22"
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "1.0.63"
+tokio = { version = "1", features = ["net", "full"] }
