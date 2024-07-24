@@ -70,6 +70,13 @@ impl MessageType {
 
     /// Constructs a MessageType::File from a given file path.
     pub fn from_file(file_path: &Path) -> Self {
+        // Read file name
+        let name = match file_path.file_name() {
+            Some(os_name) => os_name.to_string_lossy().into_owned(),
+            None => return MessageType::Text(LibError::FileNameError.to_string()),
+        };
+
+        // Read file content
         File::open(file_path).map_or_else(
             |_| {
                 MessageType::Text(
@@ -78,22 +85,9 @@ impl MessageType {
             },
             |mut file| {
                 let mut content = Vec::new();
-                if file.read_to_end(&mut content).is_err() {
-                    return MessageType::Text(
-                        LibError::IoError(std::io::Error::new(
-                            std::io::ErrorKind::Other,
-                            "Failed to read file",
-                        ))
-                        .to_string(),
-                    );
-                }
-
-                file_path.file_name().map_or_else(
-                    || MessageType::Text(LibError::FileNameError.to_string()),
-                    |os_name| MessageType::File {
-                        name: os_name.to_string_lossy().into_owned(),
-                        content,
-                    },
+                file.read_to_end(&mut content).map_or_else(
+                    |e| MessageType::Text(LibError::IoError(e).to_string()),
+                    |_| MessageType::File { name, content },
                 )
             },
         )
