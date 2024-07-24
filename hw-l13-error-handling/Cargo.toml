@@ -14,6 +14,7 @@ path = "src/bin/server.rs"
 path = "src/lib.rs"
 
 [dependencies]
+anyhow = "1.0.86"
 bincode = "1.3.3"
 chrono = "0.4.38"
 env_logger = "0.11.4"
