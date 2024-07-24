@@ -21,36 +21,47 @@
 
 ## Running the example
 
+To run the server and client(s), follow these instructions. Ensure that you start the server binary
+before running the client binaries. Each binary should be run in a separate terminal.
+
 - localhost on default port 11111
 
-``` bash
-cargo run --bin server
-cargo run --bin client
-```
+  ``` bash
+  cargo run --bin server
+  cargo run --bin client
+  ```
 
 - localhost on specified port
 
-``` bash
-cargo run --bin server 1234
-cargo run --bin client 1234
-```
+  ``` bash
+  cargo run --bin server 1234
+  cargo run --bin client 1234
+  ```
 
 - server on all addresses on specified port
 
-``` bash
-cargo run --bin server 1234 0.0.0.0
-cargo run --bin client 1234
-```
+  ``` bash
+  cargo run --bin server 1234 0.0.0.0
+  cargo run --bin client 1234
+  ```
+
+- multiple clients on default `localhost:11111`
+
+  ``` bash
+  cargo run --bin server
+  cargo run --bin client
+  cargo run --bin client
+  ```
 
 ### Functional requests
 
-- `.file file.txt`
-- `.image rust.png`
-- `just string`
-- `.quit`
+- `.file file.txt` -> saves `files/file.txt`
+- `.image rust.png` -> saves `images/rust.png`
+- `just string` -> returns "just string"
+- `.quit` -> terminates connection
 
 ### Non-functional requests
 
-- `.file non-existing`
-- `.image non-existing.png`
-- `.image wrong-suffix.jpg`
+- `.file non-existing` -> returns "Error reading file"
+- `.image non-existing.png` -> returns "Error reading image"
+- `.image wrong-suffix.jpg` -> returns "Wrong image extension. Only PNG files are supported."
