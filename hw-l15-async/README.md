@@ -2,7 +2,7 @@
 
 ## Objective
 
-- [ ] Asynchronous Rewriting Using Tokio
+- [x] Asynchronous Rewriting Using Tokio
   - Refactor both the client and server components of your application to work asynchronously, using Tokio as the foundation.
   - Ensure all I/O operations, network communications, and other latency-sensitive tasks are handled using Tokio's asynchronous capabilities.
 - [ ] Database Integration

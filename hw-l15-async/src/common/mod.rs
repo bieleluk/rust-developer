@@ -3,12 +3,13 @@ use image::{load_from_memory, ImageFormat};
 use log::trace;
 use serde::{Deserialize, Serialize};
 use std::ffi::OsStr;
-use std::fs::create_dir_all;
-use std::fs::File;
-use std::io::{Read, Write};
-use std::net::{Ipv4Addr, TcpStream};
+use std::net::Ipv4Addr;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
+use tokio::fs::{create_dir_all, read, File};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpStream;
+use tokio::task;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum MessageType {
@@ -47,29 +48,22 @@ pub enum LibError {
 
 impl MessageType {
     /// Constructs a MessageType::Image from a given image file path.
-    pub fn from_image(image_path: &Path) -> Self {
+    pub async fn from_image(image_path: &Path) -> Self {
+        // Check for png extension
         if image_path.extension() != Some(OsStr::new("png")) {
             return MessageType::Text(LibError::WrongImageExtension.to_string());
         }
-
-        File::open(image_path).map_or_else(
-            |_| {
-                MessageType::Text(
-                    LibError::ImageReadingError(format!("{:?}", image_path)).to_string(),
-                )
-            },
-            |mut file| {
-                let mut content = Vec::new();
-                file.read_to_end(&mut content).map_or_else(
-                    |e| MessageType::Text(LibError::IoError(e).to_string()),
-                    |_| MessageType::Image(content),
-                )
-            },
-        )
+        // Read image content
+        match read(image_path).await {
+            Ok(content) => MessageType::Image(content),
+            Err(_) => MessageType::Text(
+                LibError::ImageReadingError(format!("{:?}", image_path)).to_string(),
+            ),
+        }
     }
 
     /// Constructs a MessageType::File from a given file path.
-    pub fn from_file(file_path: &Path) -> Self {
+    pub async fn from_file(file_path: &Path) -> Self {
         // Read file name
         let name = match file_path.file_name() {
             Some(os_name) => os_name.to_string_lossy().into_owned(),
@@ -77,20 +71,12 @@ impl MessageType {
         };
 
         // Read file content
-        File::open(file_path).map_or_else(
-            |_| {
-                MessageType::Text(
-                    LibError::FileReadingError(format!("{:?}", file_path)).to_string(),
-                )
-            },
-            |mut file| {
-                let mut content = Vec::new();
-                file.read_to_end(&mut content).map_or_else(
-                    |e| MessageType::Text(LibError::IoError(e).to_string()),
-                    |_| MessageType::File { name, content },
-                )
-            },
-        )
+        match read(file_path).await {
+            Ok(content) => MessageType::File { name, content },
+            Err(_) => MessageType::Text(
+                LibError::FileReadingError(format!("{:?}", file_path)).to_string(),
+            ),
+        }
     }
 
     /// Constructs a MessageType::Text from a given text string.
@@ -99,10 +85,10 @@ impl MessageType {
     }
 
     /// Saves an Image message to a file.
-    pub fn to_image(&self) -> Result<(), LibError> {
+    pub async fn to_image(&self) -> Result<(), LibError> {
         if let MessageType::Image(ref content) = *self {
             // Create the images directory if it doesn't exist
-            create_dir_all("images")?;
+            create_dir_all("images").await?;
             // Generate a timestamped file name
             let name = format!(
                 "{}.png",
@@ -112,31 +98,34 @@ impl MessageType {
             let path: PathBuf = PathBuf::from("images").join(name);
 
             // Create and save the image file
-            File::create(&path)?;
-            let img = load_from_memory(content)?;
-            img.save_with_format(path, ImageFormat::Png)?;
+            File::create(&path).await?;
 
-            Ok(())
+            task::block_in_place(move || {
+                // Save the image data to a file synchronously
+                let img = load_from_memory(content)?;
+                img.save_with_format(path, ImageFormat::Png)?;
+                Ok(())
+            })
         } else {
             Err(LibError::WrongMessageType)
         }
     }
 
     /// Saves a File message to a file.
-    pub fn to_file(&self) -> Result<(), LibError> {
+    pub async fn to_file(&self) -> Result<(), LibError> {
         if let MessageType::File {
             ref name,
             ref content,
         } = *self
         {
             // Create the files directory if it doesn't exist
-            create_dir_all("files")?;
+            create_dir_all("files").await?;
             // Create a PathBuf for the file path
             let path: PathBuf = PathBuf::from("files").join(name);
 
             // Create and write the file contents
-            let mut file = File::create(path)?;
-            file.write_all(content)?;
+            let mut file = File::create(path).await?;
+            file.write_all(content).await?;
             Ok(())
         } else {
             Err(LibError::WrongMessageType)
@@ -144,13 +133,13 @@ impl MessageType {
     }
 
     /// Receives a MessageType from tcp stream.
-    pub fn receive(stream: &mut TcpStream) -> Result<Self, LibError> {
+    pub async fn receive(stream: &mut TcpStream) -> Result<Self, LibError> {
         let mut buffer = Vec::new();
 
         loop {
             // Read data from the stream into a temporary buffer
             let mut temp_buffer = [0; 100];
-            let bytes_read = match stream.read(&mut temp_buffer) {
+            let bytes_read = match stream.read(&mut temp_buffer).await {
                 Ok(0) => return Err(LibError::ConnectionClosed),
                 Ok(n) => n,
                 Err(e) => return Err(LibError::IoError(e)),
@@ -175,11 +164,11 @@ impl MessageType {
     }
 
     /// Sends MessageTpe to tcp stream.
-    pub fn send(&self, stream: &mut TcpStream) -> Result<(), LibError> {
+    pub async fn send(&self, stream: &mut TcpStream) -> Result<(), LibError> {
         // Serialize the message
         let encoded: Vec<u8> = bincode::serialize(self)?;
         // Write the serialized message to the stream
-        stream.write_all(&encoded)?;
+        stream.write_all(&encoded).await?;
         Ok(())
     }
 }
