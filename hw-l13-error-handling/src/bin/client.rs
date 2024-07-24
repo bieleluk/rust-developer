@@ -16,10 +16,11 @@ fn main() {
     // Start the client
     match start_client(ip, port) {
         Ok(_) => {
-            info!("Client execution finished without error")
+            info!("Client execution finished without error");
         }
         Err(e) => {
-            error!("Client execution finished error: {e}")
+            error!("Client execution finished error: {e}");
+            std::process::exit(1);
         }
     }
 }
